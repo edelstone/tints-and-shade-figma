@@ -1,6 +1,6 @@
 {
   "name": "Tint & Shade Generator",
-  "id": "maketintsandshades-plugin",
+  "id": "1580658889126377365",
   "api": "1.0.0",
   "editorType": ["figma"],
   "main": "code.js",
@@ -10,5 +10,9 @@
       "command": "generate",
       "name": "Make tints and shades 🎉"
     }
-  ]
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
 }
