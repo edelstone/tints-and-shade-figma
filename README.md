@@ -1,8 +1,8 @@
-# <img src="assets/icon.png" width="28px" /> &nbsp;Tint & Shade Generator - Figma Plugin
+# <img src="assets/icon.png" width="28px" /> &nbsp;Tint & Shade Generator - Figma plugin
 
 ![Screenshot of the Figma plugin in action](assets/screenshot.png)
 
-Generate a complete set of tints, shades, and a base color directly inside Figma. This plugin is the companion to the web version of the [Tint & Shade Generator](https://maketintsandshades.com), bringing the same, meticulous [color-generation logic](https://maketintsandshades.com/about/#calculation-method) into your design workflow.
+Generate a complete set of tints and shades from a base color directly inside Figma. This plugin is the companion to the web version of the [Tint & Shade Generator](https://maketintsandshades.com), bringing the same, meticulous [color-generation logic](https://maketintsandshades.com/about/#calculation-method) into your design workflow.
 
 ## Features
 
@@ -77,6 +77,15 @@ Tints & Shades
 If you notice a bug or want to request a feature, please [file an issue on GitHub](https://github.com/edelstone/tints-and-shades-figma/issues/new) or [email me](mailto:contact@maketintsandshades.com) the details.
 
 If you're a developer and want to help, please comment on [open issues](https://github.com/edelstone/tints-and-shades-figma/issues) or create a new one and communicate your intentions. Once we agree on a path forward you can just make a PR and take it to the finish line.
+
+## Support this project
+
+The Tint & Shade Generator will always be free but your support is greatly appreciated.
+
+-   [Buy Me a Coffee](https://www.buymeacoffee.com/edelstone)
+-   [Cash App](https://cash.app/$edelstone)
+-   [Paypal](https://www.paypal.me/edelstone)
+-   [Venmo](https://venmo.com/michaeledelstone)
 
 ## License
 
