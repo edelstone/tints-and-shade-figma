@@ -8,6 +8,22 @@ figma.showUI(__html__, {
   title: "Tint & Shade Generator"
 });
 
+type UiSettings = {
+  createStyles?: boolean;
+  darkBackground?: boolean;
+  includeHashtag?: boolean;
+  includePalette?: boolean;
+  paletteType?: PaletteType;
+  stepCount?: number;
+};
+
+const SETTINGS_KEY = "tints-and-shades-settings";
+
+const postSettingsToUi = async () => {
+  const settings = await figma.clientStorage.getAsync(SETTINGS_KEY);
+  figma.ui.postMessage({ type: "settings", settings });
+};
+
 // Receive messages from UI
 figma.ui.onmessage = async (msg: {
   type: string;
@@ -19,7 +35,18 @@ figma.ui.onmessage = async (msg: {
   includeHashtag?: boolean;
   includePalette?: boolean;
   paletteType?: string;
+  settings?: UiSettings;
 }) => {
+  if (msg.type === "get-settings") {
+    await postSettingsToUi();
+    return;
+  }
+
+  if (msg.type === "set-settings") {
+    await figma.clientStorage.setAsync(SETTINGS_KEY, msg.settings || {});
+    return;
+  }
+
   if (msg.type !== "generate") return;
 
   const rawInput: string = (msg.hex || "").trim();

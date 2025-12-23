@@ -17,6 +17,19 @@
     padding: 16px 12px;
   }
 
+  .checkbox .switch,
+  .checkbox .switch::after {
+    transition: none;
+  }
+
+  body.is-interactive .checkbox .switch {
+    transition: background 150ms ease-in-out;
+  }
+
+  body.is-interactive .checkbox .switch::after {
+    transition: transform 150ms ease-in-out;
+  }
+
   .section {
     margin-bottom: 16px;
   }
@@ -66,10 +79,10 @@
   code {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
       "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
-      background-color: #e6e6e6;
-      border-radius: var(--radius);
-      padding: 2px 6px;
-      font-size: 16px;
+    background-color: #e6e6e6;
+    border-radius: var(--radius);
+    padding: 2px 6px;
+    font-size: 16px;
   }
 
   .steps {
@@ -158,7 +171,6 @@
     background: var(--gray-400);
     border-radius: 999px;
     position: relative;
-    transition: background 150ms ease-in-out;
     flex-shrink: 0;
   }
 
@@ -171,7 +183,6 @@
     border-radius: 50%;
     top: 3px;
     left: 3px;
-    transition: transform 150ms ease-in-out;
   }
 
   .checkbox input:checked+.switch {
@@ -282,6 +293,79 @@
     const stepGroup = document.getElementById("stepGroup");
     let stepCount = 10;
 
+    const enableInteractions = () => {
+      document.body.classList.add("is-interactive");
+    };
+    document.addEventListener("pointerdown", enableInteractions, { once: true });
+    document.addEventListener("keydown", enableInteractions, { once: true });
+
+    const settingsKey = "tints-and-shades-settings";
+    const validStepCounts = new Set(["5", "10", "20"]);
+
+    const sendSettings = () => {
+      parent.postMessage(
+        {
+          pluginMessage: {
+            type: "set-settings",
+            key: settingsKey,
+            settings: {
+              createStyles: stylesInput.checked,
+              darkBackground: darkBgInput.checked,
+              includeHashtag: hashtagInput.checked,
+              includePalette: paletteInput.checked,
+              paletteType: paletteTypeInput.value,
+              stepCount
+            }
+          }
+        },
+        "*"
+      );
+    };
+
+    const applySettings = (settings) => {
+      if (!settings || typeof settings !== "object") return;
+      if (typeof settings.createStyles === "boolean") {
+        stylesInput.checked = settings.createStyles;
+      }
+      if (typeof settings.darkBackground === "boolean") {
+        darkBgInput.checked = settings.darkBackground;
+      }
+      if (typeof settings.includeHashtag === "boolean") {
+        hashtagInput.checked = settings.includeHashtag;
+      }
+      if (typeof settings.includePalette === "boolean") {
+        paletteInput.checked = settings.includePalette;
+      }
+      if (typeof settings.paletteType === "string") {
+        const hasOption = Array.from(paletteTypeInput.options).some(
+          (option) => option.value === settings.paletteType
+        );
+        if (hasOption) {
+          paletteTypeInput.value = settings.paletteType;
+        }
+      }
+      if (
+        typeof settings.stepCount === "number" &&
+        validStepCounts.has(String(settings.stepCount))
+      ) {
+        stepCount = settings.stepCount;
+        stepGroup.querySelectorAll(".step-button").forEach((button) => {
+          button.classList.toggle(
+            "is-active",
+            button.dataset.step === String(stepCount)
+          );
+        });
+      }
+    };
+
+    window.onmessage = (event) => {
+      const { pluginMessage } = event.data || {};
+      if (!pluginMessage) return;
+      if (pluginMessage.type === "settings") {
+        applySettings(pluginMessage.settings);
+      }
+    };
+
     stepGroup.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLButtonElement)) return;
@@ -291,10 +375,10 @@
       stepGroup.querySelectorAll(".step-button").forEach((button) => {
         button.classList.toggle("is-active", button === target);
       });
+      sendSettings();
     });
 
     generateButton.onclick = () => {
-
       parent.postMessage(
         {
           pluginMessage: {
@@ -311,6 +395,22 @@
         "*"
       );
     };
+
+    stylesInput.addEventListener("change", sendSettings);
+    darkBgInput.addEventListener("change", sendSettings);
+    hashtagInput.addEventListener("change", sendSettings);
+    paletteInput.addEventListener("change", sendSettings);
+    paletteTypeInput.addEventListener("change", sendSettings);
+
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "get-settings",
+          key: settingsKey
+        }
+      },
+      "*"
+    );
   </script>
 
 
