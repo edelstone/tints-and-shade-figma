@@ -4,6 +4,14 @@
 
 <style>
   body {
+    --black: #000;
+    --white: #fff;
+    --magenta: #ca228e;
+    --gray-100: #f0f0f0;
+    --gray-200: #e6e6e6;
+    --gray-300: #dbdbdb;
+    --gray-400: #cfcfcf;
+    --radius: 6px;
     font: 14px "Work Sans", system-ui, sans-serif;
     margin: 0;
     padding: 16px 12px;
@@ -29,75 +37,166 @@
   input[type="text"] {
     font-family: inherit;
     font-size: inherit;
-    border-radius: 6px;
+    border-radius: var(--radius);
     padding: 6px 4px;
-    border: 1px solid #dbdbdb;
-    background-color: #f0f0f0;
+    border: 1px solid var(--gray-300);
+    background-color: var(--gray-100);
     box-sizing: border-box;
     width: 100%;
   }
 
-  input[type="text"]:focus,
-  input[type="text"]:focus-visible,
-  select:focus,
-  select:focus-visible,
-  button:focus,
-  button:focus-visible {
-    outline-color: #ca228e;
+  input[type="text"]:focus-visible {
+    outline-color: var(--magenta);
+  }
+
+  select {
+    font-family: inherit;
+    font-size: inherit;
+    border-radius: var(--radius);
+    padding: 4px;
+    border: 1px solid var(--gray-300);
+    background-color: var(--gray-100);
+  }
+
+  select:focus-visible {
+    outline-color: var(--magenta);
   }
 
   .steps {
     display: inline-flex;
     flex-direction: column;
+    user-select: none;
   }
 
-  .radio-group {
+  .step-group {
     display: inline-flex;
-    gap: 16px;
+    gap: 0;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius);
+    align-items: stretch;
   }
 
-  .radio-pill {
+  .step-button {
+    border: none;
+    background: var(--gray-100);
+    color: var(--black);
+    border-radius: 0;
+    margin: 0;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    width: 40px;
+    position: relative;
   }
 
-  .radio-pill input {
-    margin: 0;
-    transform: translateY(0);
+  .step-button:first-child {
+    border-top-left-radius: var(--radius);
+    border-bottom-left-radius: var(--radius);
+  }
+
+  .step-button:last-child {
+    border-top-right-radius: var(--radius);
+    border-bottom-right-radius: var(--radius);
+  }
+
+  .step-button.is-active {
+    background: var(--gray-300);
+    color: var(--black);
+  }
+
+  .step-button:not(.is-active):hover {
+    background: var(--gray-200);
+  }
+
+  .step-button:focus-visible {
+    outline-color: var(--magenta);
+    z-index: 1;
   }
 
   .checkboxes {
     display: flex;
-    gap: 16px;
+    gap: 10px;
     margin-top: 20px;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .checkbox {
     display: inline-flex;
     gap: 6px;
     align-items: center;
+    cursor: pointer;
+    height: 24px;
   }
 
-  button {
+
+  .checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkbox .switch {
+    width: 34px;
+    height: 20px;
+    background: var(--gray-400);
+    border-radius: 999px;
+    position: relative;
+    transition: background 150ms ease-in-out;
+    flex-shrink: 0;
+  }
+
+  .checkbox .switch::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--white);
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 150ms ease-in-out;
+  }
+
+  .checkbox input:checked+.switch {
+    background: var(--magenta);
+  }
+
+  .checkbox input:checked+.switch::after {
+    transform: translateX(14px);
+  }
+
+  .checkbox input:focus-visible+.switch {
+    outline: 2px solid var(--magenta);
+  }
+
+  #generate {
     font-family: inherit;
     font-size: inherit;
     border: none;
-    background: #000;
+    background: var(--black);
     width: 100%;
     padding: 12px 8px;
     margin-top: 4px;
     cursor: pointer;
-    border-radius: 6px;
-    color: #fff;
+    border-radius: var(--radius);
+    color: var(--white);
     transition: background 150ms ease-in-out;
     user-select: none;
   }
 
-  button:hover,
-  button:focus,
-  button:focus-visible {
-    background: #ca228e;
+  #generate:hover {
+    background: var(--magenta);
+  }
+
+  #generate:focus-visible {
+    outline: 2px solid var(--magenta);
   }
 </style>
 
@@ -112,34 +211,47 @@
     </div>
 
     <div class="section">
-      <label class="steps">
+      <div class="steps">
         <div class="input-header">Steps</div>
-        <div class="radio-group" id="stepGroup">
-          <label class="radio-pill">
-            <input type="radio" name="step" value="5">
-            <span>5</span>
-          </label>
-          <label class="radio-pill">
-            <input type="radio" name="step" value="10" checked>
-            <span>10</span>
-          </label>
-          <label class="radio-pill">
-            <input type="radio" name="step" value="20">
-            <span>20</span>
-          </label>
+        <div class="step-group" id="stepGroup" role="group" aria-label="Steps">
+          <button class="step-button" type="button" data-step="5">5</button>
+          <button class="step-button is-active" type="button" data-step="10">10</button>
+          <button class="step-button" type="button" data-step="20">20</button>
         </div>
-      </label>
+      </div>
     </div>
 
     <div class="section checkboxes">
       <label class="checkbox styles">
         <input id="createStyles" type="checkbox">
-        <span>Add local styles</span>
+        <span class="switch"></span>
+        <span class="label">Create styles</span>
+      </label>
+
+      <div class="checkbox palette">
+        <label class="checkbox">
+          <input id="includePalette" type="checkbox">
+          <span class="switch"></span>
+          <span class="label">Include</span>
+        </label>
+        <select id="paletteType">
+          <option value="complementary" selected>complementary</option>
+          <option value="split-complementary">split complementary</option>
+          <option value="analogous">analogous</option>
+          <option value="triadic">triadic</option>
+        </select>
+      </div>
+
+      <label class="checkbox hashtags">
+        <input id="includeHashtag" type="checkbox">
+        <span class="switch"></span>
+        <span class="label">Prefix #</span>
       </label>
 
       <label class="checkbox darkmode">
         <input id="darkBackground" type="checkbox">
-        <span>Dark background</span>
+        <span class="switch"></span>
+        <span class="label">Dark background</span>
       </label>
     </div>
 
@@ -152,11 +264,26 @@
     const hexInput = document.getElementById("hex");
     const stylesInput = document.getElementById("createStyles");
     const darkBgInput = document.getElementById("darkBackground");
+    const hashtagInput = document.getElementById("includeHashtag");
+    const paletteInput = document.getElementById("includePalette");
+    const paletteTypeInput = document.getElementById("paletteType");
     const generateButton = document.getElementById("generate");
 
+    const stepGroup = document.getElementById("stepGroup");
+    let stepCount = 10;
+
+    stepGroup.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const nextStep = parseInt(target.dataset.step || "", 10);
+      if (!Number.isFinite(nextStep)) return;
+      stepCount = nextStep;
+      stepGroup.querySelectorAll(".step-button").forEach((button) => {
+        button.classList.toggle("is-active", button === target);
+      });
+    });
+
     generateButton.onclick = () => {
-      const selectedStep = document.querySelector('input[name="step"]:checked');
-      const stepCount = selectedStep ? parseInt(selectedStep.value, 10) : 10;
 
       parent.postMessage(
         {
@@ -165,7 +292,10 @@
             hex: hexInput.value,
             stepCount,
             createStyles: stylesInput.checked,
-            darkBackground: darkBgInput.checked
+            darkBackground: darkBgInput.checked,
+            includeHashtag: hashtagInput.checked,
+            includePalette: paletteInput.checked,
+            paletteType: paletteTypeInput.value
           }
         },
         "*"

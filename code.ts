@@ -4,7 +4,7 @@
 
 figma.showUI(__html__, {
   width: 320,
-  height: 240,
+  height: 365,
   title: "Tint & Shade Generator"
 });
 
@@ -16,6 +16,9 @@ figma.ui.onmessage = async (msg: {
   stepCount?: number;
   createStyles?: boolean;
   darkBackground?: boolean;
+  includeHashtag?: boolean;
+  includePalette?: boolean;
+  paletteType?: string;
 }) => {
   if (msg.type !== "generate") return;
 
@@ -24,6 +27,9 @@ figma.ui.onmessage = async (msg: {
   const stepPercent: number = 100 / stepCount;
   const createStyles: boolean = !!msg.createStyles;
   const darkBackground: boolean = !!msg.darkBackground;
+  const includeHashtag: boolean = !!msg.includeHashtag;
+  const includePalette: boolean = !!msg.includePalette;
+  const paletteType: PaletteType = normalizePaletteType(msg.paletteType);
   const labelColor = darkBackground
     ? { r: 230 / 255, g: 230 / 255, b: 230 / 255 } // #e6e6e6
     : { r: 0, g: 0, b: 0 };
@@ -53,6 +59,10 @@ figma.ui.onmessage = async (msg: {
     return;
   }
 
+  const expandedHexList = includePalette
+    ? expandRelatedHexes(hexList, paletteType)
+    : hexList;
+
   // Load font once for all labels
   await figma.loadFontAsync({ family: "Roboto", style: "Regular" });
 
@@ -67,7 +77,7 @@ figma.ui.onmessage = async (msg: {
 
   const createdFrames: SceneNode[] = [];
 
-  for (const hex of hexList) {
+  for (const hex of expandedHexList) {
     const palette = generatePalette(hex, stepPercent);
 
     const swatchSize = 64;
@@ -75,7 +85,7 @@ figma.ui.onmessage = async (msg: {
 
     // Outer frame: base column + palette rows
     const frame = figma.createFrame();
-    frame.name = `${hex.toLowerCase().replace("#", "")}`; // frame under Tints & Shades
+    frame.name = formatHexLabel(hex, includeHashtag); // frame under Tints & Shades
     frame.layoutMode = "HORIZONTAL";
     frame.primaryAxisSizingMode = "AUTO";
     frame.counterAxisSizingMode = "AUTO";
@@ -106,14 +116,17 @@ figma.ui.onmessage = async (msg: {
 
     if (createStyles) {
       const baseStyle = figma.createPaintStyle();
-      baseStyle.name = `Tints & Shades/${hex.toLowerCase().replace("#", "")}/Base`; // styles parent
+      baseStyle.name = `Tints & Shades/${formatHexLabel(
+        hex,
+        includeHashtag
+      )}/Base`; // styles parent
       baseStyle.paints = baseRect.fills;
     }
 
     const baseLabel = figma.createText();
-    baseLabel.name = hex.toLowerCase().replace("#", "");
+    baseLabel.name = formatHexLabel(hex, includeHashtag);
     baseLabel.fontName = { family: "Roboto", style: "Regular" };
-    baseLabel.characters = hex.toLowerCase();
+    baseLabel.characters = formatHexLabel(hex, includeHashtag);
     baseLabel.fontSize = 10;
     baseLabel.textAlignHorizontal = "CENTER";
     baseLabel.textAutoResize = "WIDTH_AND_HEIGHT";
@@ -175,9 +188,9 @@ figma.ui.onmessage = async (msg: {
       rect.fills = [{ type: "SOLID", color: hexToRgb01(swatch.hex) }];
 
       const label = figma.createText();
-      label.name = swatch.hex.toLowerCase().replace("#", "");
+      label.name = formatHexLabel(swatch.hex, includeHashtag);
       label.fontName = { family: "Roboto", style: "Regular" };
-      label.characters = swatch.hex.toLowerCase();
+      label.characters = formatHexLabel(swatch.hex, includeHashtag);
       label.fontSize = 10;
       label.textAlignHorizontal = "CENTER";
       label.textAutoResize = "WIDTH_AND_HEIGHT";
@@ -189,9 +202,10 @@ figma.ui.onmessage = async (msg: {
 
       if (createStyles) {
         const style = figma.createPaintStyle();
-        style.name = `Tints & Shades/${hex
-          .toLowerCase()
-          .replace("#", "")}/Shades/${stepName}`;
+        style.name = `Tints & Shades/${formatHexLabel(
+          hex,
+          includeHashtag
+        )}/Shades/${stepName}`;
         style.paints = rect.fills;
       }
     }
@@ -218,9 +232,9 @@ figma.ui.onmessage = async (msg: {
       rect.fills = [{ type: "SOLID", color: hexToRgb01(swatch.hex) }];
 
       const label = figma.createText();
-      label.name = swatch.hex.toLowerCase().replace("#", "");
+      label.name = formatHexLabel(swatch.hex, includeHashtag);
       label.fontName = { family: "Roboto", style: "Regular" };
-      label.characters = swatch.hex.toLowerCase();
+      label.characters = formatHexLabel(swatch.hex, includeHashtag);
       label.fontSize = 10;
       label.textAlignHorizontal = "CENTER";
       label.textAutoResize = "WIDTH_AND_HEIGHT";
@@ -232,9 +246,10 @@ figma.ui.onmessage = async (msg: {
 
       if (createStyles) {
         const style = figma.createPaintStyle();
-        style.name = `Tints & Shades/${hex
-          .toLowerCase()
-          .replace("#", "")}/Tints/${stepName}`;
+        style.name = `Tints & Shades/${formatHexLabel(
+          hex,
+          includeHashtag
+        )}/Tints/${stepName}`;
         style.paints = rect.fills;
       }
     }
@@ -263,6 +278,11 @@ figma.ui.onmessage = async (msg: {
 // Shades: new = current * shadeFactor
 
 type Role = "tint" | "shade" | "base";
+type PaletteType =
+  | "complementary"
+  | "split-complementary"
+  | "analogous"
+  | "triadic";
 
 interface Swatch {
   role: Role;
@@ -290,6 +310,13 @@ function isValidHex(hex: string): boolean {
   return /^#[0-9a-f]{6}$/i.test(hex);
 }
 
+function normalizePaletteType(value?: string): PaletteType {
+  if (value === "split-complementary") return "split-complementary";
+  if (value === "analogous") return "analogous";
+  if (value === "triadic") return "triadic";
+  return "complementary";
+}
+
 function hexToRgb255(hex: string): { r: number; g: number; b: number } {
   const cleaned = hex.replace("#", "");
   const r = parseInt(cleaned.slice(0, 2), 16);
@@ -308,6 +335,76 @@ function rgb255ToHex(r: number, g: number, b: number): string {
   return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
+function rgbToHsl(rgb: { r: number; g: number; b: number }): {
+  hue: number;
+  saturation: number;
+  lightness: number;
+} {
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let hue = 0;
+  let saturation = 0;
+  const lightness = (max + min) / 2;
+
+  if (max !== min) {
+    const delta = max - min;
+    saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+
+    switch (max) {
+      case r:
+        hue = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+        break;
+      case g:
+        hue = ((b - r) / delta + 2) * 60;
+        break;
+      default:
+        hue = ((r - g) / delta + 4) * 60;
+    }
+  }
+
+  return {
+    hue: (hue + 360) % 360,
+    saturation,
+    lightness
+  };
+}
+
+function hueToRgb(p: number, q: number, t: number): number {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
+}
+
+function hslToRgb(hsl: {
+  hue: number;
+  saturation: number;
+  lightness: number;
+}): { r: number; g: number; b: number } {
+  const h = ((hsl.hue % 360) + 360) % 360 / 360;
+  const s = Math.min(Math.max(hsl.saturation, 0), 1);
+  const l = Math.min(Math.max(hsl.lightness, 0), 1);
+
+  if (s === 0) {
+    const value = Math.round(l * 255);
+    return { r: value, g: value, b: value };
+  }
+
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+
+  return {
+    r: Math.round(hueToRgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hueToRgb(p, q, h) * 255),
+    b: Math.round(hueToRgb(p, q, h - 1 / 3) * 255)
+  };
+}
+
 function hexToRgb01(hex: string): RGB {
   const { r, g, b } = hexToRgb255(hex);
   return { r: r / 255, g: g / 255, b: b / 255 };
@@ -316,6 +413,47 @@ function hexToRgb01(hex: string): RGB {
 function formatStepLabel(step: number): string {
   const scaledStep = Math.round(step * 10);
   return scaledStep.toString();
+}
+
+function formatHexLabel(hex: string, includeHashtag: boolean): string {
+  const normalized = hex.toLowerCase();
+  return includeHashtag ? normalized : normalized.replace("#", "");
+}
+
+function calculateRelatedHexes(hex: string, paletteType: PaletteType): string[] {
+  const { r, g, b } = hexToRgb255(hex);
+  const hsl = rgbToHsl({ r, g, b });
+  const offsets =
+    paletteType === "split-complementary"
+      ? [180 - 30, 180 + 30]
+      : paletteType === "analogous"
+        ? [-30, 30]
+        : paletteType === "triadic"
+          ? [120, 240]
+          : [180];
+
+  return offsets.map((offset) => {
+    const hue = (hsl.hue + offset + 360) % 360;
+    const rgb = hslToRgb({
+      hue,
+      saturation: hsl.saturation,
+      lightness: hsl.lightness
+    });
+    return rgb255ToHex(rgb.r, rgb.g, rgb.b);
+  });
+}
+
+function expandRelatedHexes(
+  hexes: string[],
+  paletteType: PaletteType
+): string[] {
+  const expanded: string[] = [];
+  for (const hex of hexes) {
+    expanded.push(hex);
+    const related = calculateRelatedHexes(hex, paletteType);
+    expanded.push(...related);
+  }
+  return expanded;
 }
 
 function generatePalette(baseHex: string, stepPercent: number): Swatch[] {
